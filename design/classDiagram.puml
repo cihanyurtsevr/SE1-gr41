@@ -1,0 +1,483 @@
+@startuml classDiagram
+
+class EZWHServer {
+    + main()
+}
+
+
+class Express {
+}
+
+class callCtrlCheckErr{
+}
+
+
+package "Controllers" #DDDDDD{
+
+class HTTPError{
+}
+class Warehouse {
+    - {static} whSingle : Warehouse
+    + SKUCtrl : SKUController
+    + UserCtrl : UserController
+    + ItemCtrl : ItemController
+    + TestCtrl : TestController
+    + OrderCtrl : OrderController
+    __
+    + constructor()
+    + {static} getInstance() : Warehouse
+    + createTables()
+    + hasPermissions(...args)
+}
+
+class SKUController {
+    - wh : Warehouse
+    - SKUDao : SKU
+    - SKUItemDao : SKUItem
+    __
+    + constructor(wh, SKUDao, SKUITemDao)
+    + createTables()
+    ..
+    + getSKUs() 
+    + getSKUById(skuid) 
+    + postSKU(newSKU)
+    + putSKU(oldSkuId, skuMod)
+    + putSKUPosition(skuId, positionId)
+    + deleteSKU(skuId)
+    ..
+    + getSKUItems()
+    + getSKUItemsBySKUId(skuId) 
+    + getSKUItem(RFID)
+    + postSKUItem(newSkuItem) 
+    + putSKUItem(RFID, skuMod)
+    + deleteSKUItem(RFID)
+    ..
+    + getSKUItemsByInternalOrderId(internalOrderId)
+    + getSKUItemsByRestockOrderId(restockOrderId)
+    + getSKUItemsByReturnOrderId(returnOrderId)
+    + setIntOrd(RFID, intOrdId)
+    + setRestockOrd(RFID, restockOrdId)
+    + setReturnOrd(RFID, returnOrderId)
+}
+
+class TestController {
+    - wh : Warehouse
+    - TestDescriptorDao : TestDescriptor
+    - TestResultDao : TestResult
+    __
+    + constructor(wh, TestDescriptorDao, TestResultDao)
+    + createTables()
+    ..
+    + getTestResults(rfid)
+    + getTestResultById(rfid, id)
+    + postTestResult(newTestResult)
+    + putTestResult(rfid, id, testMod) 
+    + deleteTestResult(rfid, id)
+    ..
+    + getTestDescriptors()
+    + getTestDescriptor(id)
+    + getTestDescriptorBySKUId(idSKU)
+    + postTestDescriptor(newTestDescriptor)
+    + putTestDescriptor(id, testMod)
+    + deleteTestDescriptor(id)
+}
+
+class UserController {
+    - wh : Warehouse
+    - isLogged : Boolean
+    - currUser : User
+    - userDao : User
+    __
+    + constructor()
+    + createTables()
+    .. 
+    + getSuppliers()
+    + getUsers()
+    + getUser()
+    - getUserByEmailType(email, type)
+    - checkType(type : String)
+    + postNewUser(newUser)
+    + putUser(email, userMod)
+    + deleteUser(email, type)
+    ..
+    + getUserInfo()
+    + session(email, password, type)
+    + logout()
+}
+
+class ItemController {
+    - wh : Warehouse
+    - ItemDao : Item
+    - PositionDao : Position
+    __
+    + constructor(wh,ItemDao,PositionDao)
+    + createTables()
+    ..
+    + getItems()
+    + getItem(id)
+    + getItemsBySupplId(supplierId)
+    + getItemBySKUIdAndSupplId(skuId, supplierId)
+    + postItem(newid)
+    + putItem(id, itemMod)
+    + deleteItem(id)
+    ..
+    + getPositions()
+    + getPosition(positionID)
+    + postPosition(newPosition)
+    + putPosition(positionID, posMod)
+    + putPositionChangeID(positionID, posMod)
+    + deletePosition(positionID)
+}
+
+class OrderController {
+    - wh : Warehouse
+    - restockOrdDato : RestockOrder
+    - internalOrdDao : InternalOrder
+    - returnOrdDao : ReturnOrder
+    __
+    + constructor(wh, restockOrderDao, returnOrderDao, internalOrderDao)
+    + createTable()
+    ..
+    + getTransportNote(id)
+    + postTransportNote(transportNote)
+    ..
+    - mapAndFillRestOrder(restockOrders, state)
+    + getRestockOrders(state = undefined)
+    + getRestockOrder(id)
+    + getRestockOrderReturnItems(id)
+    + postRestockOrder(newRestOrd)
+    + putRestockOrderState(id, newState)
+    + putRestockOrderSKUItems(id, skuItems)
+    + putRestockOrderTranspNote(id, transpNote)
+    + deleteRestockOrder(id)
+    ..
+    - mapAndFillReturnOrder(returnOrders)
+    + getReturnOrders()
+    + getReturnOrder(id)
+    + postReturnOrder(newReturnOrder)
+    + deleteReturnOrder(id)
+    ..  
+    - mapAndFillIntOrder(internalOrders, state)
+    + getInternalOrders(state = undefined)
+    + getInternalOrder(id)
+    + postInternalOrder(newIntOrd)
+    + putInternalOrder(id, body)
+    + deleteInternalOrder(id)
+}
+
+}
+package "Database" <<Database>> {
+class DatabaseHelper {
+    + db
+    ..
+    + constructor(pathSQLite)
+    __
+    + queryDBAll(sql, data=[])
+    + queryDBRun(sql, data=[])
+}
+class Sqlite {
+    + run() : void
+    + all() : void
+}
+}
+package "DAO" {
+    
+    class SKU {
+        - Id : Integer
+        - description : String
+        - weight : Double
+        - volume : Double
+        - notes : String
+        - position : String
+        - availableQuantity : Integer
+        - price : Double
+        __
+        + createTable() : void
+        + deleteTable() : void
+        + buildSKU(rows) : SKU
+        + getSKUs() : Array<Sku>
+        + getSKUById(id) : SKU
+        + insertNewSKU(newSKU) : void
+        + updateSKU(SKU) : void
+        + updateSKUPosition(SKUid, positionId) : void 
+        + deleteSKU(SKUid) : void
+    }
+
+    class SKUItem {
+        - RFID : String
+        - SKUId : Integer
+        - available : Boolean
+        - dateOfStock : String
+        - restockOrderId : Integer
+        - returnOrderId : Integer
+        - internalOrderId : Integer
+        __
+        + buildSkuItem(rows) : SKUItem
+        + createTable() : void
+        + deleteTable() : void
+        + getSKuItems() : Array<SKUItem>
+        + getSKUItemById(SKUid) : SKUItem
+        + getSKUItemByRFID(RFID) : SKUItem
+        + getSKUItemByInternalOrderID(internalOrderId) : SKUItem
+        + getSKUItemByRestockOrderID(RestockOrderId) : SKUItem
+        + getSKUItemByReturnOrderID(ReturnOrderId) : SKUItem 
+        + insertNewSkuItem(SKUItem) : void
+        + insertInternalOrderID(RFID, internalOrderId) : SKUItem
+        + insertRestockOrderID(RFID, RestockOrderId) : SKUItem
+        + insertReturnOrderID(RFID, ReturnOrderId) : SKUItem
+        + updateSKUItem(SKUmod, RFID) : void
+        + deleteSKUItem(RFID) : void
+        + deleteSKUItemData() : void
+    }
+
+
+    class Item {
+        - Id : Intenger
+        - description : String
+        - price : Double
+        - SKUId : Integer
+        - supplierId : Integer
+        __
+        + buildItem(rows) : Item
+        + deleteTable() : void
+        + createTable() : void
+        + getItems() : Array<Item>
+        + getItem(id) : Item
+        + getItemBYSUpplId(supplierId) : Item
+        + getItemBySKUIdAndSupplId(skuid, supplierId) : Item
+        + insertNewItem(newid) : void
+        + updateItem(itemMod, id) : void
+        + deleteItem(id) : void
+        + deleteItemData() : void
+    }
+
+    class Position {
+        - positionID : String
+        - aisleID : String
+        - row : String
+        - col : String
+        - maxWeight : Double
+        - maxVolume : Double
+        - occupiedWeight : Double
+        - occupiedVolume : Double
+        __
+        + buildPosition(rows) : Position
+        + createTable() : void
+        + deleteTable(): void
+        + getPositions() : Array<Positions>
+        + getPositionById(positionID) : Position
+        + insertNewPosition(newPosition) : void
+        + updatePosition(posMod, positionId) : void
+        + updatePositionById(posMod, positionID) : void
+        + deletePosition(positionID) : void
+        + deletePositionData() : void
+    }
+    class User {
+        - userId : Integer
+        - name : String
+        - surname : String
+        - email : String
+        - password : String
+        - type : String
+        __
+        + buildUser(rows) : User
+        + createTable() : void
+        + deleteTable() : void
+        + getSUppliers() : Array<User>
+        + getUsers() : Array<User>
+        + getUSerById(id) : User
+        + getUserByEmailType(email, type) : User
+        + insertNewUser(newUser) : void
+        + insertOrIgnoreNewUser(name, surname, email, password, type) : void
+        + updateUser(email, userMod) : void
+        + deleteUser(email, type) : void
+        + logIn(email, password, type) : User
+    }
+    enum StateRestock {
+        ISSUED
+        DELIVERY
+        DELIVERED
+        TESTED
+        COMPLETEDRETURN
+        COMPLETED
+    }
+
+
+    class RestockOrder{
+        - Id : Integer
+        - issueDate : String
+        - state : StateRestock
+        - supplierId : Integer
+        - transportNote : Integer
+        - products : Array
+        - skuItems : Array
+        __
+        + buildRestockOrder(rows) : RestockOrder
+        + createTableRestockOrder() : void
+        + deleteTableRestockOrder() : void
+        + getRestockOrder() : Array<RestockOrder>
+        + getRestockOrderById(id) : RestockOrder
+        + insertNewRestockOrder(newRestOrder) : void
+        + updateRestockOrderStatus(id, state) : void
+        + updateRestockOrderTransportNote(id, transportNote) : void
+        + deleteRestockOrder(id) : void
+    }
+    class JoinRstkOrdSKU{
+        - restockOrderId : Integer
+        - SKUId : Integer
+        - description : String
+        - price : Double
+        - qty : Integer
+        __
+        + buildJoin(rows) : JoinRstkOrdSKU
+        + createTableJoinRstkOrdSKU() : void
+        + deleteTableJoinRstkOrdSKU() : void
+        + getJoinByRstkOrdId(restockOrderId) : JoinRstkOrdSKU
+        + insertJoin(restockOrdId, SKUId, description, price, qty) : void
+        + deleteJoin(restockOrderId) : void
+        + deleteJoinTable() : void
+        + deleteRestockOrderData() : void
+    }
+
+    class TransportNote{
+        - id
+        - deliveryState
+        __
+        + buildTransportNote(rows) : TransportNote
+        + createTableTransportNote() : void
+        + deleteTableTransportNote() : void
+        + getTransportNoteById(id) : TransportNote
+        + insertTransportNote(transportNote) : void
+    }
+    
+    class ReturnOrder{
+        - id : Integer
+        - returnDate : String
+        - restockOrderId : Integer
+        __
+        + buildReturnOrder(rows) : ReturnOrder
+        + createTable() : void
+        + deleteTable() : void
+        + getReturnOrders() : Array<ReturnOrder>
+        + getReturnOrderById(id) : ReturnOrder
+        + insertReturnOrder(newReturnOrder) : void
+        + deleteReturnOrder(id) : void
+    }
+    enum StateInternal {
+        ISSUED
+        ACCEPTED
+        REFUSED
+        CANCELED
+        COMPLETED
+    }
+    class InternalOrder{
+        - id : Integer
+        - issueDate : String
+        - state : StateInternal
+        - customerId : Integer
+        __
+        + buildInternalOrder(rows) : InternalOrder
+        + createTable() : void
+        + deleteTable() : void
+        + getInternalOrders() : Array<InternalOrder>
+        + getInternalOrderById(id) : InternalOrder
+        + insertInternalOrder(newIntOrd) : void
+        + updateInternalOrder(id, state) : void
+        + deleteInternalOrder(id) : void 
+    }
+
+    class JoinIntOrdSKU{
+        - internalOrderId : Integer
+        - SKUId : Integer
+        - description : String
+        - price : Double
+        - qty : Integer
+        __
+        + buildJoin(rows) : JoinIntOrdKU
+        + createTableJoinINtOrdSKU() : void
+        + deleteTableJoinINtOrdSKU() : void
+        + getJoinByInterOrdeId(internalOrderId) : JoinIntOrdSKU
+        + insertJoin(internalOrderId, SKUId, description, price, qty) : void
+        + deleteJoin(internalOrderId) : void
+        + deleteJoinTable() : void
+    }
+    class TestDescriptor{
+        - id : Integer
+        - name : String
+        - procedureDescription : String
+        - idSKU : Integer
+        __
+        + createTable()
+        + deleteTable()
+        - buildTestDescriptor(rows)
+        ..
+        + getTestDescriptors()
+        + getTestDescriptorById(id)
+        + getTestDescriptorBySKUId(SKUId)
+        + insertTestDescriptor(newTestDescriptor)
+        + updateTestDescriptor(testMod)
+        + deleteTestDescriptor(id)
+        + deleteTestDescriptorData()
+    }
+    class TestResult{
+        - id : Integer
+        - idTestDescriptor : Integer
+        - rfid : String
+        - Date : String
+        - Result : Boolean
+        __
+        + createTable()
+        + deleteTable()
+        - buildTestResult()
+        __
+        ~ getTestResults(rfid)
+        ~ getTestResultById(rfid,id)
+        ~ insertTestResult(newTestResult)
+        ~ updateTestResult(rfid, id, testMod)
+        ~ deleteTestResult(rfid, id)
+        ~ deleteTestResultData()
+    }
+}
+
+
+
+
+'left to right direction
+'top to bottom direction
+
+
+'Controllers -down- DAO
+'DAO -down- DatabaseHelper
+
+Warehouse o-down- SKUController
+Warehouse o-down- TestController
+Warehouse o-down- UserController
+Warehouse o-down- ItemController
+Warehouse o-down- OrderController
+
+SKUController -down- SKU
+SKUController -down- SKUItem
+ItemController -down- Item
+ItemController -down- Position
+UserController -down- User
+TestController -down- TestResult
+TestController -down- TestDescriptor
+OrderController -down- RestockOrder
+OrderController -down- ReturnOrder
+OrderController -down- InternalOrder
+RestockOrder -down- JoinRstkOrdSKU
+InternalOrder -down- JoinIntOrdSKU
+RestockOrder -down- TransportNote
+RestockOrder -down- StateRestock
+InternalOrder -down- StateInternal
+
+DAO -- Database
+
+
+Express -down- EZWHServer
+
+EZWHServer -down- callCtrlCheckErr
+callCtrlCheckErr -down- Warehouse
+DatabaseHelper *-down- Sqlite
+
+@enduml

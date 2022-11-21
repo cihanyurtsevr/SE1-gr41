@@ -1,0 +1,98 @@
+@startuml
+
+title Sequence Diagram 9-1 : Internal Order IO accepted
+collections Frontend    as Frontend
+
+note over Frontend
+    Customer
+end note
+Frontend -> EZWH  : send HTTP request
+activate EZWH 
+    EZWH -> Resolver : resolve(request : HTTPrequest)
+    activate Resolver
+        Resolver -> HTTPrequest : getAttributes()
+        activate HTTPrequest
+            HTTPrequest --> Resolver : Object
+        deactivate HTTPrequest
+        note over Resolver  
+        knowing the method (PUT) of the HTTPrequest , 
+        the right methods of the warehouse will be called
+        end note
+        Resolver -> Warehouse : getInstance()
+        activate Warehouse 
+            Warehouse --> Resolver : instance : Warehouse
+            Resolver -> Warehouse : postInternalOrder(newIO : Object)
+
+            Warehouse -> InternalOrder : new InternalOrder(newIO.issueDate, newIO.products, newIO.customerID, StateInternal.ISSUED)
+            activate InternalOrder
+                InternalOrder --> Warehouse : io : InternalOrder
+            deactivate InternalOrder
+            Warehouse -> InternalOrder : io.getSKUs()
+            activate InternalOrder
+                InternalOrder --> Warehouse : Map<SKU,Integer>
+            deactivate InternalOrder
+            loop for each sku : SKU
+                Warehouse -> SKU : getPosition()
+                activate SKU
+                    SKU --> Warehouse : pos : Position
+                deactivate SKU
+
+                note over Warehouse
+                    with this query we update the position
+                end note 
+                Warehouse -> DatabaseHelper : queryDB(UpdateQueryTemplate, [pos, qty]>)
+                activate DatabaseHelper
+                DatabaseHelper -> Warehouse : Object
+                deactivate DatabaseHelper
+
+                note over Warehouse
+                   with this query we update the SKU availableQuantity
+                end note 
+                Warehouse -> DatabaseHelper : queryDB(UpdateQueryTemplate, [sku, qty]>)
+                activate DatabaseHelper
+                DatabaseHelper -> Warehouse : Object
+                deactivate DatabaseHelper
+            end
+            note over Warehouse
+                with this query we store the InternalOrder
+            end note 
+            Warehouse -> DatabaseHelper : queryDB(InsertDataTemplate, data : Collection<>)
+            activate DatabaseHelper
+                DatabaseHelper --> Warehouse : Object
+            deactivate DatabaseHelper
+            Warehouse --> Resolver : Object
+        deactivate Warehouse
+        Resolver --> EZWH : HTTPresponse
+    deactivate Resolver
+    EZWH --> Frontend : send HTTP response
+deactivate EZWH
+
+note over Frontend
+Manager
+end note
+Frontend -> EZWH  : send HTTP request
+activate EZWH 
+    EZWH -> Resolver : resolve(request : HTTPrequest)
+    activate Resolver
+        Resolver -> HTTPrequest : getAttributes()
+        activate HTTPrequest
+            HTTPrequest --> Resolver : Object
+        deactivate HTTPrequest
+        
+        Resolver -> Warehouse : getInstance()
+        activate Warehouse 
+            Warehouse --> Resolver : instance : Warehouse
+            Resolver -> Warehouse : putInternalOrder(id : Integer, body : Object)
+            note over Warehouse
+                with this query we update the InternalOrder
+            end note 
+            Warehouse -> DatabaseHelper : queryDB(UpdateDataTemplate, data : Collection<>)
+            activate DatabaseHelper
+                DatabaseHelper --> Warehouse : Object
+            deactivate DatabaseHelper
+            Warehouse --> Resolver : Object
+        deactivate Warehouse
+        Resolver --> EZWH : HTTPresponse
+    deactivate Resolver
+    EZWH --> Frontend : send HTTP response
+deactivate EZWH

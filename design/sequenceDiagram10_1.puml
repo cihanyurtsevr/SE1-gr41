@@ -1,0 +1,80 @@
+@startuml
+collections Frontend    as Frontend
+participant EZWH        as EZWH
+participant Resolver    as Resolver
+participant HTTPrequest as HTTPrequest
+participant Warehouse   as Warehouse
+participant InternalOrder
+participant SKUItem as SKUItem
+participant DatabaseHelper as DatabaseHelper
+
+
+note over Frontend
+The Frontend include GUI e DataInterface
+end note
+note over Frontend
+The first HTTP request
+covers the first four points
+of the scenario
+end note
+Frontend -> EZWH  : send HTTP request
+activate EZWH 
+EZWH -> Resolver : resolve(request : HTTPrequest)
+activate Resolver
+Resolver -> HTTPrequest : getBody()
+activate HTTPrequest
+HTTPrequest --> Resolver : Obj
+deactivate HTTPrequest
+Resolver -> HTTPrequest : getMethod()
+activate HTTPrequest
+HTTPrequest --> Resolver : Method
+deactivate HTTPrequest
+note over Resolver  
+knowing the method (GET) of the HTTPrequest , 
+the right methods of the warehouse will be called
+end note
+Resolver -> Warehouse : getInternalOrders(id : Obj.Id)
+activate Warehouse 
+note over Warehouse
+with this query we get the right InternalOrder,
+if the query will respond with a null or error, we throw an execption
+end note
+Warehouse -> DatabaseHelper : queryDB(GetQueryTemplate, dataInternalOrder)
+activate DatabaseHelper
+DatabaseHelper -> Warehouse : Object
+deactivate DatabaseHelper
+Warehouse -> InternalOrder : getSKUItems()
+activate InternalOrder
+InternalOrder ->Warehouse : Collection <SKUItems>
+deactivate InternalOrder
+Warehouse -> DatabaseHelper : queryDB(GetQueryTemplate, dataSKUItems)
+activate DatabaseHelper 
+DatabaseHelper -> Warehouse : Object
+deactivate DatabaseHelper
+note over Warehouse
+Setting as note available
+end note
+Warehouse -> SKUItem : setAvailable(0)
+activate SKUItem
+SKUItem -> Warehouse : void
+deactivate SKUItem
+Warehouse -> DatabaseHelper: queryDB(UpdateQueryTemplate, dataSKUItems)
+activate DatabaseHelper
+DatabaseHelper -> Warehouse: Object
+deactivate DatabaseHelper
+note over Warehouse
+Setting internal order state as completed
+end note
+Warehouse -> DatabaseHelper : queryDB(UpdateQueryTemplate, dataInternalOrder)
+activate DatabaseHelper
+DatabaseHelper -> Warehouse : Object
+deactivate DatabaseHelper
+Warehouse ->Resolver : {integer, Object}
+deactivate Warehouse
+Resolver ->EZWH:HTTPresponse
+deactivate Resolver
+EZWH -> Frontend: send HTTP response
+deactivate EZWH
+
+
+

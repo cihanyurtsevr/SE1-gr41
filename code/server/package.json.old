@@ -1,0 +1,25 @@
+{
+  "name": "ezwh",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "crypto-js": "^4.1.1",
+    "dayjs": "^1.11.1",
+    "express": "^4.17.3",
+    "express-validator": "^6.14.0",
+    "sqlite3": "^5.0.8",
+    "www": "^0.0.0"
+  },
+  "devDependencies": {
+    "babel": "^6.23.0",
+    "chai": "^4.3.6",
+    "chai-http": "^4.3.0",
+    "jest": "^27.5.1",
+    "mocha": "^9.2.2"
+  },
+  "scripts": {
+    "start": "node .\\bin\\www",
+    "apiTest": ".\\node_modules\\.bin\\mocha test --exit",
+    "test": "node_modules\\.bin\\jest"
+  }
+}

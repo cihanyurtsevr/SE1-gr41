@@ -1,0 +1,38 @@
+@startuml
+title Sequence Diagram 11-1 : Create Item I
+collections Frontend    as Frontend
+
+note over Frontend
+The Frontend include GUI e DataInterface
+end note
+Frontend -> EZWH  : send HTTP request
+activate EZWH 
+    EZWH -> Resolver : resolve(request : HTTPrequest)
+    activate Resolver
+        Resolver -> HTTPrequest : getAttributes()
+        activate HTTPrequest
+            HTTPrequest --> Resolver : Object
+        deactivate HTTPrequest
+        note over Resolver  
+        knowing the method (PUT) of the HTTPrequest , 
+        the right methods of the warehouse will be called
+        end note
+        Resolver -> Warehouse : getInstance()
+        activate Warehouse 
+            Warehouse --> Resolver : instance : Warehouse
+            Resolver -> Warehouse : postItem(newItem : Object)
+
+            Warehouse -> InternalOrder : new Item(item.description, item.price, item.SKUId, item.supplierId)
+            activate InternalOrder
+                InternalOrder --> Warehouse : item : Item
+            deactivate InternalOrder
+            Warehouse -> DatabaseHelper : queryDB(insertQueryTemplate, data : Collection<>)
+            activate DatabaseHelper
+                DatabaseHelper --> Warehouse : Object
+            deactivate DatabaseHelper
+            Warehouse --> Resolver : Object
+        deactivate Warehouse
+        Resolver --> EZWH : HTTPresponse
+    deactivate Resolver
+    EZWH --> Frontend : send HTTP response
+deactivate EZWH

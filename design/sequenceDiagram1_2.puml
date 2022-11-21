@@ -1,0 +1,64 @@
+@startuml
+collections Frontend    as Frontend
+participant EZWH        as EZWH
+participant Resolver    as Resolver
+participant HTTPrequest as HTTPrequest
+participant Warehouse   as Warehouse
+participant SKU as SKU
+participant DatabaseHelper as DatabaseHelper
+
+
+note over Frontend
+The Frontend include GUI e DataInterface
+end note
+note over Frontend
+The first HTTP request
+covers the first four points
+of the scenario
+end note
+Frontend -> EZWH  : send HTTP request
+activate EZWH 
+EZWH -> Resolver : resolve(request : HTTPrequest)
+activate Resolver
+Resolver -> HTTPrequest : getBody()
+activate HTTPrequest
+HTTPrequest --> Resolver : Obj
+deactivate HTTPrequest
+Resolver -> HTTPrequest : getMethod()
+activate HTTPrequest
+HTTPrequest --> Resolver : Method
+deactivate HTTPrequest
+note over Resolver  
+knowing the method (GET) of the HTTPrequest , 
+the right methods of the warehouse will be called
+end note
+Resolver -> Warehouse : getSKUs(id : Obj.Id)
+
+note over Warehouse
+with this query we get the right SKU,
+if the query will respond with a null or error, we throw an execption
+end note
+activate Warehouse
+Warehouse -> DatabaseHelper : queryDB(GetQueryTemplate, dataSKU)
+activate DatabaseHelper
+DatabaseHelper -> Warehouse : Object
+deactivate DatabaseHelper
+note over Warehouse
+Setting position from the available ones
+end note
+Warehouse -> SKU : setPosition(positionAvailable)
+activate SKU
+SKU -> Warehouse : void
+deactivate SKU
+Warehouse -> DatabaseHelper : queryDB(UpdateQueryTemplate, dataPosition)
+activate DatabaseHelper
+DatabaseHelper -> Warehouse: Object
+deactivate DatabaseHelper
+
+Warehouse ->Resolver : {integer, Object}
+deactivate Warehouse
+Resolver ->EZWH:HTTPresponse
+deactivate Resolver
+EZWH -> Frontend: send HTTP response
+deactivate EZWH
+

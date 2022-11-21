@@ -1,0 +1,44 @@
+@startuml
+collections Frontend    as Frontend
+participant EZWH        as EZWH
+participant Resolver    as Resolver
+participant HTTPrequest as HTTPrequest
+participant Warehouse   as Warehouse
+participant Position    as Position
+participant DatabaseHelper as DatabaseHelper
+
+note over Frontend
+The Frontend include GUI e DataInterface
+end note
+Frontend -> EZWH  : send HTTP request
+activate EZWH 
+EZWH -> Resolver : resolve(request : HTTPrequest)
+activate Resolver
+Resolver -> HTTPrequest : getBody()
+activate HTTPrequest
+HTTPrequest --> Resolver : Obj
+deactivate HTTPrequest
+Resolver -> HTTPrequest : getMethod()
+activate HTTPrequest
+HTTPrequest --> Resolver : Method
+deactivate HTTPrequest
+note over Resolver  
+knowing the the method (POST) of the HTTPrequest , 
+the right method of the warehouse will be called
+end note
+Resolver -> Warehouse : postPosition(body : Obj)
+activate Warehouse 
+Warehouse -> Position  : new Position(Obj.positionID, Obj.aisleID,Obj.maxWeight,Obj.maxVolume)
+activate Position
+Position --> Warehouse : Position
+deactivate Position
+Warehouse -> DatabaseHelper : storePosition (Object : Position)
+activate DatabaseHelper
+DatabaseHelper --> Warehouse : void
+deactivate DatabaseHelper
+Warehouse --> Resolver : {Integer, Object}
+deactivate Warehouse
+Resolver --> EZWH : HTTPresponse
+deactivate Resolver
+EZWH --> Frontend : send HTTP response
+deactivate EZWH

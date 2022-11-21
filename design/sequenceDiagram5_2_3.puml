@@ -1,0 +1,81 @@
+@startuml
+collections Frontend    as Frontend
+participant EZWH        as EZWH
+participant Resolver    as Resolver
+participant HTTPrequest as HTTPrequest
+participant Warehouse   as Warehouse
+participant RestockOrder as RestockOrder
+participant SKUItem as SKUItem
+participant DatabaseHelper as DatabaseHelper
+
+
+note over Frontend
+The Frontend include GUI e DataInterface
+end note
+note over Frontend
+The first HTTP request
+covers the first four points
+of the scenario
+end note
+Frontend -> EZWH  : send HTTP request
+activate EZWH 
+EZWH -> Resolver : resolve(request : HTTPrequest)
+activate Resolver
+Resolver -> HTTPrequest : getBody()
+activate HTTPrequest
+HTTPrequest --> Resolver : Obj
+deactivate HTTPrequest
+Resolver -> HTTPrequest : getMethod()
+activate HTTPrequest
+HTTPrequest --> Resolver : Method
+deactivate HTTPrequest
+note over Resolver  
+knowing the method (GET) of the HTTPrequest , 
+the right methods of the warehouse will be called
+end note
+Resolver -> Warehouse : getRestockOrders(id : Obj.Id)
+activate Warehouse 
+note over Warehouse
+with this query we get the right RestockOrder,
+if the query will respond with a null or error, we throw an execption
+end note
+Warehouse -> DatabaseHelper  : queryDB(GetQueryTemplate, dataRestockOrder)
+activate DatabaseHelper
+DatabaseHelper --> Warehouse : {Integer, RestockOrder}
+deactivate DatabaseHelper
+note over Warehouse
+Getting SKUItems of restock order
+end note
+Warehouse -> RestockOrder : getSKUItems()
+activate RestockOrder
+RestockOrder -> Warehouse : Collection <SKUItem>
+deactivate RestockOrder
+Warehouse -> DatabaseHelper : queryDB(GetQueryTemplate, dataSKUItems)
+activate DatabaseHelper
+DatabaseHelper -> Warehouse : Object
+deactivate DatabaseHelper
+Warehouse -> SKUItem : addTestResult(testResult: test)
+activate SKUItem
+SKUItem -> Warehouse: void
+note over Warehouse
+Updating test result of SKUItems
+end note
+deactivate SKUItem
+Warehouse -> DatabaseHelper : queryDB(UpdateQueryTemplate, dataTestResult)
+activate DatabaseHelper
+DatabaseHelper -> Warehouse: Object
+deactivate DatabaseHelper
+note over Warehouse
+updating restock order as tested
+end note
+Warehouse -> DatabaseHelper : queryDB(UpdateQueryTemplate, dataRestockOrder)
+activate DatabaseHelper
+DatabaseHelper -> Warehouse : Object
+deactivate DatabaseHelper
+Warehouse ->Resolver : {integer, Object}
+deactivate Warehouse
+Resolver ->EZWH:HTTPresponse
+deactivate Resolver
+EZWH -> Frontend: send HTTP response
+deactivate EZWH
+

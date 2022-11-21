@@ -1,0 +1,86 @@
+@startuml
+
+title Sequence Diagram 5-3-3 : Stock some SKU items of a RO
+
+collections Frontend    as Frontend
+participant EZWH        as EZWH
+participant Resolver    as Resolver
+participant HTTPrequest as HTTPrequest
+participant Warehouse   as Warehouse
+participant DatabaseHelper as DatabaseHelper
+
+note over Frontend
+The Frontend include GUI e DataInterface
+end note
+Frontend -> EZWH  : send HTTP request
+activate EZWH 
+    EZWH -> Resolver : resolve(request : HTTPrequest)
+    activate Resolver
+        Resolver -> HTTPrequest : getAttributes()
+        activate HTTPrequest
+            HTTPrequest --> Resolver : Object
+        deactivate HTTPrequest
+        note over Resolver  
+        knowing the method (PUT) of the HTTPrequest , 
+        the right methods of the warehouse will be called
+        end note
+        Resolver -> Warehouse : getInstance()
+        activate Warehouse 
+            Warehouse -> Resolver : instance : Warehouse
+            Resolver -> Warehouse : putRestockOrder(id : Integer, body : Object)
+            Warehouse -> DatabaseHelper : getInstance()
+            activate DatabaseHelper
+                DatabaseHelper --> Warehouse : instance : DatabaseHelper
+                note over Warehouse
+                    Take the RestockOrder by id
+                end note
+                Warehouse -> DatabaseHelper : queryDB(sql : String, data : Collection<>)
+                DatabaseHelper --> Warehouse : ro : RestockOrder
+            deactivate DatabaseHelper
+
+            Warehouse -> RestockOrder : ro.getSKUs()
+            activate RestockOrder
+                RestockOrder --> Warehouse : Map<SKU, Integer>
+            deactivate RestockOrder
+            
+            note over Warehouse
+                For each SKU we have to update the position and the avalableQuantity
+            end note
+
+            loop for each SKUitem skuItem
+
+                Warehouse -> SKUItem : skuItem.getPosition()
+                activate SKUItem
+                    SKUItem --> Warehouse : pos : Position
+                deactivate SKUItem
+
+                note over Warehouse
+                    with this query we update the position
+                end note 
+                Warehouse -> DatabaseHelper : queryDB(UpdateQueryTemplate, [pos, qty]>)
+                activate DatabaseHelper
+                DatabaseHelper -> Warehouse : Object
+                deactivate DatabaseHelper
+
+                note over Warehouse
+                   with this query we update the SKU availableQuantity
+                end note 
+                Warehouse -> DatabaseHelper : queryDB(UpdateQueryTemplate, [sku, qty]>)
+                activate DatabaseHelper
+                DatabaseHelper -> Warehouse : Object
+                deactivate DatabaseHelper
+
+            end
+
+            Warehouse -> RestockOrder : ro.setState(StateRestock.COMPLETEDRETURN)
+            activate RestockOrder 
+                RestockOrder --> Warehouse : void
+            deactivate RestockOrder
+
+            Warehouse --> Resolver : Object
+        deactivate Warehouse
+
+        Resolver --> EZWH : HTTPresponse
+    deactivate Resolver
+    EZWH --> Frontend : send HTTP response
+deactivate EZWH

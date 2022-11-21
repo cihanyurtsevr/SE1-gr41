@@ -1,0 +1,17 @@
+@startuml
+top to bottom direction
+
+rectangle postSKURequest
+rectangle putSKURequest
+rectangle putSKUPositionRequest
+
+rectangle getSKUs
+rectangle putSKU
+rectangle putSKUPosition
+
+putSKURequest -down->  putSKU
+putSKUPositionRequest -down-> putSKUPosition
+putSKUPosition -[hidden]> getSKUs
+
+
+@enduml
